@@ -9,6 +9,7 @@ let ball = { x: canvas.width / 2, y: canvas.height / 2, radius: 10, speedX: 5, s
 const socket = io();
 
 let isWaitingForPlayer = true;
+let playerIndex = -1;
 
 function drawRect(x, y, w, h, color) {
   context.fillStyle = color;
@@ -31,8 +32,14 @@ function render() {
     context.font = '30px Arial';
     context.fillText('Waiting for other player', canvas.width / 2 - 150, canvas.height / 2);
   } else {
-    drawRect(playerPaddle.x, playerPaddle.y, paddleWidth, paddleHeight, 'blue');
-    drawRect(opponentPaddle.x, opponentPaddle.y, paddleWidth, paddleHeight, 'red');
+    // Determine paddle positions based on player index
+    if (playerIndex === 0) {
+      drawRect(playerPaddle.x, playerPaddle.y, paddleWidth, paddleHeight, 'blue');
+      drawRect(opponentPaddle.x, opponentPaddle.y, paddleWidth, paddleHeight, 'red');
+    } else if (playerIndex === 1) {
+      drawRect(opponentPaddle.x, opponentPaddle.y, paddleWidth, paddleHeight, 'blue');
+      drawRect(playerPaddle.x, playerPaddle.y, paddleWidth, paddleHeight, 'red');
+    }
     drawCircle(ball.x, ball.y, ball.radius, 'green');
   }
 }
@@ -53,11 +60,14 @@ canvas.addEventListener('mousemove', event => {
   let mouseY = event.clientY - rect.top - root.scrollTop;
   playerPaddle.y = mouseY - paddleHeight / 2;
 
-  socket.emit('move', { y: playerPaddle.y });
+  // Emit move event with playerIndex
+  socket.emit('move', { y: playerPaddle.y, playerIndex });
 });
 
 socket.on('opponentMove', data => {
-  opponentPaddle.y = data.y;
+  if (data.playerIndex !== playerIndex) {
+    opponentPaddle.y = data.y;
+  }
 });
 
 socket.on('ballUpdate', data => {
@@ -67,6 +77,7 @@ socket.on('ballUpdate', data => {
 
 socket.on('roomJoined', data => {
   console.log(`Joined room: ${data.room}`);
+  playerIndex = data.playerIndex;
 });
 
 socket.on('startGame', () => {

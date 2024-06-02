@@ -43,7 +43,8 @@ io.on('connection', socket => {
 
   console.log(`Player ${socket.id} joined ${room}`);
 
-  socket.emit('roomJoined', { room });
+  const playerIndex = rooms[room].players.indexOf(socket.id);
+  socket.emit('roomJoined', { room, playerIndex });
 
   if (rooms[room].players.length === 2) {
     io.to(room).emit('startGame');
