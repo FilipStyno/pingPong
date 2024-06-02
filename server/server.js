@@ -17,11 +17,11 @@ function findAvailableRoom() {
     }
   }
   const newRoom = `room-${Object.keys(rooms).length + 1}`;
-  rooms[newRoom] = { players: [], ball: { x: 400, y: 300, radius: 10, speedX: 5, speedY: 5 }, score: [0, 0] };
+  rooms[newRoom] = { players: [], ball: { x: 400, y: 300, radius: 10, speedX: 5, speedY: 5 }, score: [0, 0], paddles: [{ y: 250 }, { y: 250 }] };
   return newRoom;
 }
 
-function updateBallPosition(ball, score, room) {
+function updateBallPosition(ball, paddles, score, room) {
   ball.x += ball.speedX;
   ball.y += ball.speedY;
 
@@ -29,6 +29,16 @@ function updateBallPosition(ball, score, room) {
     ball.speedY = -ball.speedY;
   }
 
+  // Check for collision with paddles
+  if (ball.x - ball.radius < 20 && ball.y > paddles[0].y && ball.y < paddles[0].y + 100) {
+    ball.speedX = -ball.speedX;
+  }
+
+  if (ball.x + ball.radius > 780 && ball.y > paddles[1].y && ball.y < paddles[1].y + 100) {
+    ball.speedX = -ball.speedX;
+  }
+
+  // Check for scoring
   if (ball.x - ball.radius < 0) {
     score[1]++;
     resetBall(ball);
@@ -67,7 +77,7 @@ io.on('connection', socket => {
     // Start ball update interval for the room
     if (!rooms[room].intervalId) {
       rooms[room].intervalId = setInterval(() => {
-        updateBallPosition(rooms[room].ball, rooms[room].score, room);
+        updateBallPosition(rooms[room].ball, rooms[room].paddles, rooms[room].score, room);
         io.to(room).emit('ballUpdate', rooms[room].ball);
       }, 1000 / 60);
     }
@@ -76,6 +86,7 @@ io.on('connection', socket => {
   }
 
   socket.on('move', data => {
+    rooms[room].paddles[data.playerIndex].y = data.y;
     socket.to(room).emit('opponentMove', data);
   });
 
