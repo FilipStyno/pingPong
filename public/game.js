@@ -5,6 +5,8 @@ let paddleWidth = 10, paddleHeight = 100;
 let playerPaddle = { x: 10, y: canvas.height / 2 - paddleHeight / 2 };
 let opponentPaddle = { x: canvas.width - paddleWidth - 10, y: canvas.height / 2 - paddleHeight / 2 };
 let ball = { x: canvas.width / 2, y: canvas.height / 2, radius: 10, speedX: 5, speedY: 5 };
+let playerScore = 0;
+let opponentScore = 0;
 
 const socket = io();
 
@@ -24,6 +26,12 @@ function drawCircle(x, y, r, color) {
   context.fill();
 }
 
+function drawText(text, x, y, color) {
+  context.fillStyle = color;
+  context.font = '30px Arial';
+  context.fillText(text, x, y);
+}
+
 function render() {
   context.clearRect(0, 0, canvas.width, canvas.height);
   
@@ -41,6 +49,8 @@ function render() {
       drawRect(playerPaddle.x, playerPaddle.y, paddleWidth, paddleHeight, 'red');
     }
     drawCircle(ball.x, ball.y, ball.radius, 'green');
+    drawText(`Player: ${playerScore}`, 50, 50, 'blue');
+    drawText(`Opponent: ${opponentScore}`, canvas.width - 200, 50, 'red');
   }
 }
 
@@ -73,6 +83,11 @@ socket.on('opponentMove', data => {
 socket.on('ballUpdate', data => {
   ball.x = data.x;
   ball.y = data.y;
+});
+
+socket.on('scoreUpdate', data => {
+  playerScore = data[playerIndex];
+  opponentScore = data[1 - playerIndex];
 });
 
 socket.on('roomJoined', data => {

@@ -17,11 +17,11 @@ function findAvailableRoom() {
     }
   }
   const newRoom = `room-${Object.keys(rooms).length + 1}`;
-  rooms[newRoom] = { players: [], ball: { x: 400, y: 300, radius: 10, speedX: 5, speedY: 5 } };
+  rooms[newRoom] = { players: [], ball: { x: 400, y: 300, radius: 10, speedX: 5, speedY: 5 }, score: [0, 0] };
   return newRoom;
 }
 
-function updateBallPosition(ball) {
+function updateBallPosition(ball, score, room) {
   ball.x += ball.speedX;
   ball.y += ball.speedY;
 
@@ -29,9 +29,24 @@ function updateBallPosition(ball) {
     ball.speedY = -ball.speedY;
   }
 
-  if (ball.x - ball.radius < 0 || ball.x + ball.radius > 800) {
-    ball.speedX = -ball.speedX;
+  if (ball.x - ball.radius < 0) {
+    score[1]++;
+    resetBall(ball);
+    io.to(room).emit('scoreUpdate', score);
   }
+
+  if (ball.x + ball.radius > 800) {
+    score[0]++;
+    resetBall(ball);
+    io.to(room).emit('scoreUpdate', score);
+  }
+}
+
+function resetBall(ball) {
+  ball.x = 400;
+  ball.y = 300;
+  ball.speedX = -ball.speedX;
+  ball.speedY = 5;
 }
 
 io.on('connection', socket => {
@@ -52,7 +67,7 @@ io.on('connection', socket => {
     // Start ball update interval for the room
     if (!rooms[room].intervalId) {
       rooms[room].intervalId = setInterval(() => {
-        updateBallPosition(rooms[room].ball);
+        updateBallPosition(rooms[room].ball, rooms[room].score, room);
         io.to(room).emit('ballUpdate', rooms[room].ball);
       }, 1000 / 60);
     }
