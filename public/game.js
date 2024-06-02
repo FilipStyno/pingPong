@@ -8,6 +8,8 @@ let ball = { x: canvas.width / 2, y: canvas.height / 2, radius: 10, speedX: 5, s
 
 const socket = io();
 
+let isWaitingForPlayer = true;
+
 function drawRect(x, y, w, h, color) {
   context.fillStyle = color;
   context.fillRect(x, y, w, h);
@@ -24,22 +26,19 @@ function drawCircle(x, y, r, color) {
 function render() {
   context.clearRect(0, 0, canvas.width, canvas.height);
   
-  drawRect(playerPaddle.x, playerPaddle.y, paddleWidth, paddleHeight, 'blue');
-  drawRect(opponentPaddle.x, opponentPaddle.y, paddleWidth, paddleHeight, 'red');
-  drawCircle(ball.x, ball.y, ball.radius, 'green');
+  if (isWaitingForPlayer) {
+    context.fillStyle = 'black';
+    context.font = '30px Arial';
+    context.fillText('Waiting for other player', canvas.width / 2 - 150, canvas.height / 2);
+  } else {
+    drawRect(playerPaddle.x, playerPaddle.y, paddleWidth, paddleHeight, 'blue');
+    drawRect(opponentPaddle.x, opponentPaddle.y, paddleWidth, paddleHeight, 'red');
+    drawCircle(ball.x, ball.y, ball.radius, 'green');
+  }
 }
 
 function update() {
-  ball.x += ball.speedX;
-  ball.y += ball.speedY;
-
-  if (ball.y + ball.radius > canvas.height || ball.y - ball.radius < 0) {
-    ball.speedY = -ball.speedY;
-  }
-
-  if (ball.x - ball.radius < 0 || ball.x + ball.radius > canvas.width) {
-    ball.speedX = -ball.speedX;
-  }
+  // Update logic is handled by the server
 }
 
 function gameLoop() {
@@ -64,6 +63,24 @@ socket.on('opponentMove', data => {
 socket.on('ballUpdate', data => {
   ball.x = data.x;
   ball.y = data.y;
+});
+
+socket.on('roomJoined', data => {
+  console.log(`Joined room: ${data.room}`);
+});
+
+socket.on('startGame', () => {
+  isWaitingForPlayer = false;
+});
+
+socket.on('waitingForPlayer', () => {
+  isWaitingForPlayer = true;
+});
+
+socket.on('playerDisconnected', () => {
+  console.log('Opponent disconnected');
+  isWaitingForPlayer = true;
+  // Additional logic to handle the disconnection
 });
 
 gameLoop();
